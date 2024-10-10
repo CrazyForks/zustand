@@ -1,6 +1,6 @@
 ---
 title: Auto Generating Selectors
-nav: 6
+nav: 5
 ---
 
 We recommend using selectors when using either the properties or actions from the store. You can access values from the store like so:
@@ -11,7 +11,7 @@ const bears = useBearStore((state) => state.bears)
 
 However, writing these could be tedious. If that is the case for you, you can auto-generate your selectors.
 
-## create the following function: `createSelectors`
+## Create the following function: `createSelectors`
 
 ```typescript
 import { StoreApi, UseBoundStore } from 'zustand'

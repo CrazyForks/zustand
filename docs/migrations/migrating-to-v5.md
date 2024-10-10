@@ -1,6 +1,6 @@
 ---
 title: 'How to Migrate to v5 from v4'
-nav: 30
+nav: 23
 ---
 
 # How to Migrate to v5 from v4
@@ -18,6 +18,7 @@ We highly recommend to update to the latest version of v4, before migrating to v
 - Organize entry points in the package.json
 - Drop ES5 support
 - Stricter types when setState's replace flag is set
+- Persist middleware behavioral change
 - Other small improvements (technically breaking changes)
 
 ## Migration Guide
@@ -98,15 +99,36 @@ For example, this may cause infinite loops.
 
 ```js
 // v4
-const action = useMainStore((state) => {
-  return state.action ?? () => {}
-})
+const [searchValue, setSearchValue] = useStore((state) => [
+  state.searchValue,
+  state.setSearchValue,
+])
 ```
 
 The error message will be something like this:
 
-```
+```plaintext
 Uncaught Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+```
+
+To fix it, use the `useShallow` hook, which will return a stable reference.
+
+```js
+// v5
+import { useShallow } from 'zustand/shallow'
+
+const [searchValue, setSearchValue] = useStore(
+  useShallow((state) => [state.searchValue, state.setSearchValue]),
+)
+```
+
+Here's another example that may cause infinite loops.
+
+```js
+// v4
+const action = useMainStore((state) => {
+  return state.action ?? () => {}
+})
 ```
 
 To fix it, make sure the selector function returns a stable reference.
@@ -163,6 +185,51 @@ If the value of the `replace` flag is dynamic and determined at runtime, you mig
 ```ts
 const replaceFlag = Math.random() > 0.5
 store.setState(partialOrFull, replaceFlag as any)
+```
+
+#### Persist middlware no longer stores item at store creation
+
+Previously, the `persist` middleware stored the initial state during store creation. This behavior has been removed in v5 (and v4.5.5).
+
+For example, in the following code, the initial state is stored in the storage.
+
+```js
+// v4
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+const useCountStore = create(
+  persist(
+    () => ({
+      count: Math.floor(Math.random() * 1000),
+    }),
+    {
+      name: 'count',
+    },
+  ),
+)
+```
+
+In v5, this is no longer the case, and you need to explicitly set the state after store creation.
+
+```js
+// v5
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+const useCountStore = create(
+  persist(
+    () => ({
+      count: 0,
+    }),
+    {
+      name: 'count',
+    },
+  ),
+)
+useCountStore.setState({
+  count: Math.floor(Math.random() * 1000),
+})
 ```
 
 ## Links
